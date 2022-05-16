@@ -98,6 +98,8 @@ export default class BaseStreamController
   protected log: (msg: any) => void;
   protected warn: (msg: any) => void;
 
+  private lastFragUpdate = false;
+
   constructor(hls: Hls, fragmentTracker: FragmentTracker, logPrefix: string) {
     super();
     this.logPrefix = logPrefix;
@@ -163,6 +165,10 @@ export default class BaseStreamController
           lastPart.start + lastPart.duration / 2
         );
         return lastPartBuffered;
+      }
+      if (this.lastFragUpdate) {
+        this.lastFragUpdate = false;
+        return false;
       }
       const fragState = fragmentTracker.getState(fragCurrent);
       return (
@@ -1319,6 +1325,7 @@ export default class BaseStreamController
   ) {
     const details = level.details as LevelDetails;
     console.assert(!!details, 'level.details must be defined');
+    let forceNextTick = false;
     const parsed = Object.keys(frag.elementaryStreams).reduce(
       (result, type) => {
         const info = frag.elementaryStreams[type];
@@ -1334,31 +1341,53 @@ export default class BaseStreamController
             this.resetTransmuxer();
             return result || false;
           }
-          const drift = partial
-            ? 0
-            : updateFragPTSDTS(
-                details,
-                frag,
-                info.startPTS,
-                info.endPTS,
-                info.startDTS,
-                info.endDTS
-              );
-          this.hls.trigger(Events.LEVEL_PTS_UPDATED, {
-            details,
-            level,
-            drift,
-            type,
-            frag,
-            start: info.startPTS,
-            end: info.endPTS,
-          });
+
+          if (type == 'video') {
+            if (frag.sn >= details.endSN) forceNextTick = true;
+            const drift = updateFragPTSDTS(
+              details,
+              frag,
+              info.startPTS,
+              info.endPTS,
+              info.startDTS,
+              info.endDTS
+            );
+            this.hls.trigger(Events.LEVEL_PTS_UPDATED, {
+              details,
+              level,
+              drift,
+              type,
+              frag,
+              start: info.startPTS,
+              end: info.endPTS,
+            });
+          }
+          // const drift = partial
+          //   ? 0
+          //   : updateFragPTSDTS(
+          //       details,
+          //       frag,
+          //       info.startPTS,
+          //       info.endPTS,
+          //       info.startDTS,
+          //       info.endDTS
+          //     );
+          // this.hls.trigger(Events.LEVEL_PTS_UPDATED, {
+          //   details,
+          //   level,
+          //   drift,
+          //   type,
+          //   frag,
+          //   start: info.startPTS,
+          //   end: info.endPTS,
+          // });
           return true;
         }
         return result;
       },
       false
     );
+    if (forceNextTick) this.lastFragUpdate = true;
     if (parsed) {
       this.state = State.PARSED;
       this.hls.trigger(Events.FRAG_PARSED, { frag, part });

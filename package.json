@@ -113,5 +113,8 @@
     "webpack-dev-server": "4.8.1",
     "webpack-merge": "5.8.0",
     "webworkify-webpack": "2.1.5"
+  },
+  "dependencies": {
+    "ci": "^2.2.0"
   }
 }

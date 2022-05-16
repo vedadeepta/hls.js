@@ -288,19 +288,19 @@ export default class StreamController
       }
     }
     // Avoid loop loading by using nextLoadPosition set for backtracking
-    if (
-      frag &&
-      this.fragmentTracker.getState(frag) === FragmentState.OK &&
-      this.nextLoadPosition > targetBufferTime
-    ) {
-      // Cleanup the fragment tracker before trying to find the next unbuffered fragment
-      const type =
-        this.audioOnly && !this.altAudio
-          ? ElementaryStreamTypes.AUDIO
-          : ElementaryStreamTypes.VIDEO;
-      this.afterBufferFlushed(media, type, PlaylistLevelType.MAIN);
-      frag = this.getNextFragment(this.nextLoadPosition, levelDetails);
-    }
+    // if (
+    //   frag &&
+    //   this.fragmentTracker.getState(frag) === FragmentState.OK &&
+    //   this.nextLoadPosition > targetBufferTime
+    // ) {
+    //   // Cleanup the fragment tracker before trying to find the next unbuffered fragment
+    //   const type =
+    //     this.audioOnly && !this.altAudio
+    //       ? ElementaryStreamTypes.AUDIO
+    //       : ElementaryStreamTypes.VIDEO;
+    //   this.afterBufferFlushed(media, type, PlaylistLevelType.MAIN);
+    //   frag = this.getNextFragment(this.nextLoadPosition, levelDetails);
+    // }
     if (!frag) {
       return;
     }
@@ -336,9 +336,10 @@ export default class StreamController
         fragState = FragmentState.NOT_LOADED;
       }
     }
+
     if (
       fragState === FragmentState.NOT_LOADED ||
-      fragState === FragmentState.PARTIAL
+      fragState === FragmentState.PARTIAL 
     ) {
       if (frag.sn === 'initSegment') {
         this._loadInitSegment(frag);
